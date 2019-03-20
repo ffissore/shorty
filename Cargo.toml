@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "shorty",
+    "shorty-http",
+    "shorty-aws-lambda",
+    "shorty-conf"
+]

@@ -1,0 +1,40 @@
+<div class="container">
+  <div class="row">
+    <div class="column">
+      <h5>Shorten a URL, share it with lv! &#9829;</h5>
+      <div>
+        <label for="url">URL</label>
+        <div class="row">
+          <div class="ten columns">
+            {{input class="u-full-width url" type="url" placeholder="https://example.com" focus-out=(action "shorten") enter=(action "shorten") value=this.url}}
+          </div>
+          <div class="two columns">
+            <input class="button-primary submit" type="submit" value="Shorten" onclick={{action "shorten"}}>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {{#if this.invalidURL}}
+    <div class="row alert failure invalidURL">
+      <div class="column">
+        {{this.invalidURL}} is not a valid URL
+      </div>
+    </div>
+  {{/if}}
+  {{#if this.genericError}}
+    <div class="row alert failure genericError">
+      <div class="column">
+        An error occurred: {{this.genericError}}
+      </div>
+    </div>
+  {{/if}}
+  {{#if this.shorteningResult}}
+    <div class="row alert success">
+      <div class="column">
+        <a href={{this.shorteningResult.shortURL}} target="_blank" rel="noopener">{{this.shorteningResult.shortURL}}</a> is your short url
+        {{#copy-button clipboardText=this.shorteningResult.shortURL}}Copy to clipboard{{/copy-button}}
+      </div>
+    </div>
+  {{/if}}
+</div>

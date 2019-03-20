@@ -1,0 +1,10 @@
+# used by `serverless` node util
+node_modules
+.serverless
+package-lock.json
+
+# serverless-rust will build using docker, creating a `target/lambda` folder which will be owned by root
+# so we keep an empty target folder which will be owned by the current user, allowing her/him
+# to develop with no permission issues
+target/*
+!target/.gitkeep

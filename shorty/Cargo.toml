@@ -1,0 +1,18 @@
+[package]
+name = "shorty"
+version = "0.1.0"
+authors = ["Federico Fissore <federico@fissore.org>"]
+edition = "2018"
+description = "shorty is a library for assigning short IDs to long URL, and store them on redis"
+license = "Apache-2.0"
+readme = "../README.md"
+repository = "https://github.com/ffissore/shorty"
+keywords = ["url", "shortener", "redis", "server", "serverless"]
+homepage = "https://with.lv"
+
+[dependencies]
+redis = "0.10.0"
+nanoid = "0.2"
+serde = "1.0"
+serde_derive = "1.0"
+log = "0.4.6"

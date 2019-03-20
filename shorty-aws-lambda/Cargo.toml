@@ -1,0 +1,24 @@
+[package]
+name = "shorty-aws-lambda"
+version = "0.1.0"
+authors = ["Federico Fissore <federico@fissore.org>"]
+edition = "2018"
+description = "shorty-aws-lambda is a url shortener based on shorty and deployable on AWS lambda"
+license = "Apache-2.0"
+readme = "../README.md"
+repository = "https://github.com/ffissore/shorty"
+keywords = ["url", "shortener", "redis", "server", "serverless"]
+homepage = "https://with.lv"
+
+[dependencies]
+log = "0.4.6"
+env_logger = "0.6"
+lambda_runtime = "0.2.0"
+lambda_http = "0.1.0"
+http = "0.1.16"
+redis = "0.10.0"
+serde = "1.0"
+serde_derive = "1.0"
+serde_json = "1.0"
+shorty = { path = "../shorty", version = "0.1.0" }
+shorty-conf = { path = "../shorty-conf", version = "0.1.0" }
