@@ -1,0 +1,24 @@
+dist: xenial
+language: rust
+rust: stable
+cache: cargo
+script:
+    - cargo build --release
+    - cargo test --release
+before_deploy:
+    - cd target/release
+    - tar cjvf ../../shorty-http-$TRAVIS_TAG-linux-amd64.tar.bz2 shorty-http
+    - cd $TRAVIS_BUILD_DIR
+deploy:
+    - provider: releases
+      api_key: $GH_TOKEN
+      file_glob: true
+      file: shorty-http*.tar.bz2
+      skip_cleanup: true
+      on:
+          tags: true
+    - provider: script
+      script: bash docker_deploy.sh
+      skip_cleanup: true
+      on:
+          tags: true
