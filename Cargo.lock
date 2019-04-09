@@ -1299,7 +1299,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "shorty"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "nanoid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1310,7 +1310,7 @@ dependencies = [
 
 [[package]]
 name = "shorty-aws-lambda"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "env_logger 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "http 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1321,17 +1321,17 @@ dependencies = [
  "serde 1.0.90 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.90 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.39 (registry+https://github.com/rust-lang/crates.io-index)",
- "shorty 0.2.1",
- "shorty-conf 0.2.1",
+ "shorty 0.3.0",
+ "shorty-conf 0.3.0",
 ]
 
 [[package]]
 name = "shorty-conf"
-version = "0.2.1"
+version = "0.3.0"
 
 [[package]]
 name = "shorty-http"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "actix 0.7.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-web 0.7.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1339,8 +1339,8 @@ dependencies = [
  "redis 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.90 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.90 (registry+https://github.com/rust-lang/crates.io-index)",
- "shorty 0.2.1",
- "shorty-conf 0.2.1",
+ "shorty 0.3.0",
+ "shorty-conf 0.3.0",
 ]
 
 [[package]]

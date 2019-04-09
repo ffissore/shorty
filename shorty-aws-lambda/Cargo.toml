@@ -1,6 +1,6 @@
 [package]
 name = "shorty-aws-lambda"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Federico Fissore <federico@fissore.org>"]
 edition = "2018"
 description = "shorty-aws-lambda is a url shortener based on shorty and deployable on AWS lambda"
@@ -20,5 +20,5 @@ redis = "0.10.0"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-shorty = { path = "../shorty", version = "0.2.1" }
-shorty-conf = { path = "../shorty-conf", version = "0.2.1" }
+shorty = { path = "../shorty", version = "0.3.0" }
+shorty-conf = { path = "../shorty-conf", version = "0.3.0" }
