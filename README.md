@@ -1,29 +1,27 @@
 # shorty
 
-Shorty is a URL shortener: it creates a short URL, assigning an ID to a URL of any length.
-
-When people will access the short URL, they will be redirected to the original URL.
+Shorty is a URL shortener: it assigns a short ID to a URL of any length, and when people will access the URL with that short ID, they will be redirected to the original URL.
 
 This is useful in cases such as sending SMS notifications, when you have a limited number of characters and don't want to waste them with a long URL and its parameters.
 
 Shorty stores its data on Redis.
 
-### Multiple ways of using it
+### Multiple ways of deploying it
 
 Shorty is available as
 
-- a rust library
-- a standalone http service
-- an AWS lambda
-- an Azure Function
+- a [rust library](#rust-library)
+- an [http microservice](#http-microservice)
+- an [AWS lambda](#aws-lambda)
+- an [Azure function](#azure-function)
 
 ### Rust library
 
 Shorty is written in rust, and available as a crate library.
 
-For additional information, take a look at the [documentation](https://docs.rs/shorty).
+For additional information, take a look at the [documentation](https://docs.rs/shorty), and use shorty-http binary crate as an example. 
 
-### Standalone http service
+### HTTP microservice
 
 Shorty stores its data on redis, so you need to install redis first. How to do that depends on your operating system. If you are on a debian like linux distro, it's just a
 ```bash
@@ -46,7 +44,7 @@ Now scroll down to [Using shorty](#using-shorty).
 
 ### AWS lambda
 
-In order to deploy Shorty on AWS, you need... node.js. Duh! Yeah, it's a shame, but `serverless` is a node package and the de-facto standard for deploying lambdas on AWS, and it works well.
+In order to deploy Shorty on AWS, you need... node.js. Duh! Yeah, it's a shame, but `serverless` is a node package and de-facto standard for deploying lambdas on AWS, and it works well.
 
 Install the required dependencies with 
 
@@ -151,6 +149,8 @@ Now try resolving that ID
 curl -vv http://localhost:8088/CGQ6LM8bfj
 ```
 
+The output headers of curl will contain a `Location: https://en.wikipedia.org/wiki/URL_shortening#Techniques`. Try opening the shorty url with your browser.
+
 ### Configuration
 
 Shorty can be configured through environment variables
@@ -163,3 +163,9 @@ Shorty can be configured through environment variables
 * `SHORTENER_ID_LENGTH`: the length of the ID generated for each URL, defaults to 10. The char set is `a-zA-Z0-9` = 62 chars. If you plan to use shorty only internally, you can use a much shorter ID, like 4 chars.
 * `SHORTENER_HOST`: the host shorty will listen to
 * `SHORTENER_PORT`: the port shorty will listen to
+
+### What's on Redis
+
+* API keys: they are prefixed with `API_KEY_`, stored as `API_KEY_my_api_key`, and assigned a boolean value. A missing API key or an API key assigned to `false` will return error "Invalid API key"
+* Call rate keys: they are prefixed with `RATE_`, stored as `RATE_my_api_key`, and assigned the registered number of calls. The key is valid until `rate limit period` (see paragraph above) is over.
+* Short IDs, at the configured length (see example above): they are assigned to the original URL
