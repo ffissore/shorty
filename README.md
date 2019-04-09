@@ -1,5 +1,9 @@
 # shorty
 
+[![Latest version](https://img.shields.io/crates/v/shorty.svg)](https://crates.io/crates/shorty)
+[![Build Status](https://travis-ci.org/ffissore/shorty.svg?branch=master)](https://travis-ci.org/ffissore/shorty)
+![License](https://img.shields.io/github/license/ffissore/shorty.svg)
+
 Shorty is a URL shortener: it assigns a short ID to a URL of any length, and when people will access the URL with that short ID, they will be redirected to the original URL.
 
 This is useful in cases such as sending SMS notifications, when you have a limited number of characters and don't want to waste them with a long URL and its parameters.
