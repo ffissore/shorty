@@ -10,6 +10,8 @@ This is useful in cases such as sending SMS notifications, when you have a limit
 
 Shorty stores its data on Redis.
 
+You can see it in action at https://with.lv/
+
 ### Multiple ways of deploying it
 
 Shorty is available as
