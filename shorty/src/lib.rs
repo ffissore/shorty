@@ -14,7 +14,8 @@
 
 //! # Shorty
 //!
-//! `shorty` is a URL shortener: it assigns a short ID to a URL of any length, and when people will access the URL with that short ID, they will be redirected to the original URL.
+//! `shorty` is a URL shortener: it assigns a short ID to a URL of any length, and when people will
+//! access the URL with that short ID, they will be redirected to the original URL.
 //!
 #[macro_use]
 extern crate serde_derive;
@@ -69,12 +70,15 @@ impl Error for ShortenerError {}
 
 /// `Shortener` is the struct exposing methods `lookup` and `shorten`.
 ///
-/// `lookup` attempts to resolve an ID to a URL. If no URL is found or an error occurs, it returns `None`, otherwise it returns `Some(url)`.
+/// `lookup` attempts to resolve an ID to a URL. If no URL is found or an error occurs, it returns
+/// `None`, otherwise it returns `Some(url)`.
 ///
-/// `shorten` takes an optional API key and a URL to shorten. If the API key is present, it will validate it and shorten the URL only if validation passes. Otherwise, it will just shorten the URL.
+/// `shorten` takes an optional API key and a URL to shorten. If the API key is present, it will
+/// validate it and shorten the URL only if validation passes. Otherwise, it will just shorten the
+/// URL.
 ///
-/// `Shortener` interacts with a `RedisFacade`, which makes it easier to work with the `redis` crate and simplifies testing.
-///
+/// `Shortener` interacts with a `RedisFacade`, which makes it easier to work with the `redis` crate
+/// and simplifies testing.
 pub struct Shortener {
     id_length: usize,
     id_alphabet: Vec<char>,
@@ -83,7 +87,8 @@ pub struct Shortener {
     rate_limit: i64,
 }
 
-/// A struct with the successful result of a URL shortening. It holds the original `url` and the resulting `id`
+/// A struct with the successful result of a URL shortening. It holds the original `url` and the
+/// resulting `id`
 #[derive(Serialize)]
 pub struct ShortenerResult {
     id: String,
@@ -95,7 +100,8 @@ impl Shortener {
     ///
     /// `id_length` is the length of the generated ID.
     ///
-    /// `id_alphabet` is the alphabet used in the ID: a decent one is `a-zA-Z0-9` as each entry has 62 possible values and is ASCII
+    /// `id_alphabet` is the alphabet used in the ID: a decent one is `a-zA-Z0-9` as each entry has
+    /// 62 possible values and is ASCII
     ///
     /// `redis` is a `RedisFacade` instance.
     ///
@@ -118,7 +124,8 @@ impl Shortener {
         }
     }
 
-    /// Looks up a URL by the given ID. If no URL is found or an error occurs, it returns `None`, otherwise it returns `Some(url)`.
+    /// Looks up a URL by the given ID. If no URL is found or an error occurs, it returns `None`,
+    /// otherwise it returns `Some(url)`.
     pub fn lookup(&self, id: &str) -> Option<String> {
         match self.redis.get_string(id) {
             Ok(url) => Some(url),
@@ -176,7 +183,8 @@ impl Shortener {
 
     /// Shortens an URL, returning a `ShortenerResult` holding the provided URL and the generated ID.
     ///
-    /// If the optional API key is present, it will validate it and shorten the URL only if validation passes. Otherwise, it will just shorten the URL.
+    /// If the optional API key is present, it will validate it and shorten the URL only if
+    /// validation passes. Otherwise, it will just shorten the URL.
     pub fn shorten(
         &self,
         api_key: &Option<&str>,

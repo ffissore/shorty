@@ -17,7 +17,9 @@
 use redis::Commands;
 use redis::{Connection, RedisResult};
 
-/// `RedisFacade` is a wrapper around a `redis` `Connection`. It provides convenience methods such as `get_string` and `get_bool` which otherwise would be coded as `get::<_, String>` and `get::<_, bool>`, making it harder to stub the struct and properly test `shorty`.
+/// `RedisFacade` is a wrapper around a `redis` `Connection`. It provides convenience methods such
+/// as `get_string` and `get_bool` which otherwise would be coded as `get::<_, String>` and
+/// `get::<_, bool>`, making it harder to stub the struct and properly test `shorty`.
 pub struct RedisFacade {
     redis: Connection,
 }
