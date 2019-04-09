@@ -17,6 +17,8 @@
 use redis::Commands;
 use redis::{Connection, RedisResult};
 
+use std::str::FromStr;
+
 /// `RedisFacade` is a wrapper around a `redis` `Connection`. It provides convenience methods such
 /// as `get_string` and `get_bool` which otherwise would be coded as `get::<_, String>` and
 /// `get::<_, bool>`, making it harder to stub the struct and properly test `shorty`.
@@ -33,7 +35,8 @@ impl RedisFacade {
     }
 
     pub fn get_bool(&self, key: &str) -> RedisResult<bool> {
-        self.0.get::<_, bool>(key)
+        self.get_string(key)
+            .map(|value| FromStr::from_str(&value).unwrap_or(false))
     }
 
     pub fn exists(&self, key: &str) -> RedisResult<bool> {
