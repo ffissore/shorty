@@ -15,8 +15,6 @@
 #[macro_use]
 extern crate serde_derive;
 
-use std::cell::RefCell;
-
 use actix_web::http::StatusCode;
 use actix_web::{HttpRequest, HttpResponse, Json, Path};
 use redis::Client;
@@ -25,7 +23,7 @@ use shorty::redis_facade::RedisFacade;
 use shorty::Shortener;
 
 pub struct AppState {
-    shortener: RefCell<Shortener>,
+    shortener: Shortener,
     api_key_mandatory: bool,
 }
 
@@ -53,13 +51,13 @@ impl AppState {
         .collect::<Vec<char>>();
 
         AppState {
-            shortener: RefCell::new(Shortener::new(
+            shortener: Shortener::new(
                 id_length,
                 alphabet,
                 RedisFacade::new(redis),
                 rate_limit_period,
                 rate_limit,
-            )),
+            ),
             api_key_mandatory,
         }
     }
@@ -68,7 +66,7 @@ impl AppState {
 pub fn goto((req, id): (HttpRequest<AppState>, Path<String>)) -> HttpResponse {
     let app_state: &AppState = &req.state();
 
-    match app_state.shortener.borrow_mut().lookup(&id) {
+    match app_state.shortener.lookup(&id) {
         Some(url) => HttpResponse::Found().header("Location", url).finish(),
         None => HttpResponse::NotFound().finish(),
     }
@@ -98,11 +96,7 @@ pub fn shorten((req, payload): (HttpRequest<AppState>, Json<ShortenRequest>)) ->
 
     let api_key = payload.api_key.as_ref().map(String::as_str);
 
-    match app_state
-        .shortener
-        .borrow_mut()
-        .shorten(&api_key, &payload.url)
-    {
+    match app_state.shortener.shorten(&api_key, &payload.url) {
         Ok(shorten_result) => HttpResponse::Ok().json(shorten_result),
         Err(err) => HttpResponse::InternalServerError().json(ErrorResponse {
             err: err.to_string(),

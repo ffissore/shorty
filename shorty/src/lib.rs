@@ -94,14 +94,14 @@ impl Shortener {
         }
     }
 
-    pub fn lookup(&mut self, id: &str) -> Option<String> {
+    pub fn lookup(&self, id: &str) -> Option<String> {
         match self.redis.get_string(id) {
             Ok(url) => Some(url),
             Err(_) => None,
         }
     }
 
-    fn verify_api_key(&mut self, api_key: &str) -> Result<(), ShortenerError> {
+    fn verify_api_key(&self, api_key: &str) -> Result<(), ShortenerError> {
         let api_key = format!("API_KEY_{}", api_key);
         log::trace!("verifying api key '{}'", api_key);
 
@@ -150,7 +150,7 @@ impl Shortener {
     }
 
     pub fn shorten(
-        &mut self,
+        &self,
         api_key: &Option<&str>,
         url: &str,
     ) -> Result<ShortenerResult, ShortenerError> {
@@ -180,65 +180,66 @@ mod tests {
     use redis::RedisResult;
 
     use super::*;
+    use std::cell::RefCell;
 
     pub struct StubRedisFacade {
-        get_string_answers: Vec<RedisResult<String>>,
-        get_bool_answers: Vec<RedisResult<bool>>,
-        exists_answers: Vec<RedisResult<bool>>,
-        set_answers: Vec<RedisResult<()>>,
-        incr_answers: Vec<RedisResult<i64>>,
-        expire_answers: Vec<RedisResult<()>>,
+        get_string_answers: RefCell<Vec<RedisResult<String>>>,
+        get_bool_answers: RefCell<Vec<RedisResult<bool>>>,
+        exists_answers: RefCell<Vec<RedisResult<bool>>>,
+        set_answers: RefCell<Vec<RedisResult<()>>>,
+        incr_answers: RefCell<Vec<RedisResult<i64>>>,
+        expire_answers: RefCell<Vec<RedisResult<()>>>,
     }
 
     impl StubRedisFacade {
         fn new() -> Self {
             StubRedisFacade {
-                get_string_answers: vec![],
-                get_bool_answers: vec![],
-                exists_answers: vec![],
-                set_answers: vec![],
-                incr_answers: vec![],
-                expire_answers: vec![],
+                get_string_answers: RefCell::new(vec![]),
+                get_bool_answers: RefCell::new(vec![]),
+                exists_answers: RefCell::new(vec![]),
+                set_answers: RefCell::new(vec![]),
+                incr_answers: RefCell::new(vec![]),
+                expire_answers: RefCell::new(vec![]),
             }
         }
 
-        pub fn get_string(&mut self, _key: &str) -> RedisResult<String> {
-            match self.get_string_answers.pop() {
+        pub fn get_string(&self, _key: &str) -> RedisResult<String> {
+            match self.get_string_answers.borrow_mut().pop() {
                 Some(s) => s,
                 None => panic!("unexpected get_string call"),
             }
         }
 
-        pub fn get_bool(&mut self, _key: &str) -> RedisResult<bool> {
-            match self.get_bool_answers.pop() {
+        pub fn get_bool(&self, _key: &str) -> RedisResult<bool> {
+            match self.get_bool_answers.borrow_mut().pop() {
                 Some(s) => s,
                 None => panic!("unexpected get call"),
             }
         }
 
-        pub fn exists(&mut self, _key: &str) -> RedisResult<bool> {
-            match self.exists_answers.pop() {
+        pub fn exists(&self, _key: &str) -> RedisResult<bool> {
+            match self.exists_answers.borrow_mut().pop() {
                 Some(s) => s,
                 None => panic!("unexpected exists call"),
             }
         }
 
-        pub fn set(&mut self, _key: &str, _value: &str) -> RedisResult<()> {
-            match self.set_answers.pop() {
+        pub fn set(&self, _key: &str, _value: &str) -> RedisResult<()> {
+            match self.set_answers.borrow_mut().pop() {
                 Some(s) => s,
                 None => panic!("unexpected set call"),
             }
         }
 
-        pub fn increment(&mut self, _key: &str) -> RedisResult<i64> {
-            match self.incr_answers.pop() {
+        pub fn increment(&self, _key: &str) -> RedisResult<i64> {
+            match self.incr_answers.borrow_mut().pop() {
                 Some(s) => s,
                 None => panic!("unexpected incr call"),
             }
         }
 
-        pub fn expire(&mut self, _key: &str, _seconds: usize) -> RedisResult<()> {
-            match self.expire_answers.pop() {
+        pub fn expire(&self, _key: &str, _seconds: usize) -> RedisResult<()> {
+            match self.expire_answers.borrow_mut().pop() {
                 Some(s) => s,
                 None => panic!("unexpected expire call"),
             }
@@ -247,23 +248,26 @@ mod tests {
 
     #[test]
     fn test_lookup() {
-        let mut redis = StubRedisFacade::new();
-        &redis.get_string_answers.push(Ok(String::from("test url")));
+        let redis = StubRedisFacade::new();
+        &redis
+            .get_string_answers
+            .borrow_mut()
+            .push(Ok(String::from("test url")));
 
-        let mut shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
         assert_eq!(shortener.lookup("id").unwrap(), "test url");
     }
 
     #[test]
     fn test_shorten_happy_path_first_call() {
-        let mut redis = StubRedisFacade::new();
-        &redis.get_bool_answers.push(Ok(true));
-        &redis.exists_answers.push(Ok(false));
-        &redis.incr_answers.push(Ok(1));
-        &redis.expire_answers.push(Ok(()));
-        &redis.set_answers.push(Ok(()));
+        let redis = StubRedisFacade::new();
+        &redis.get_bool_answers.borrow_mut().push(Ok(true));
+        &redis.exists_answers.borrow_mut().push(Ok(false));
+        &redis.incr_answers.borrow_mut().push(Ok(1));
+        &redis.expire_answers.borrow_mut().push(Ok(()));
+        &redis.set_answers.borrow_mut().push(Ok(()));
 
-        let mut shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
         let shorten_result = shortener.shorten(&Some("api key"), "A url").unwrap();
         assert_eq!(10, shorten_result.id.len());
         assert_eq!("http://A url", shorten_result.url);
@@ -271,11 +275,11 @@ mod tests {
 
     #[test]
     fn test_shorten_happy_path_no_rate_limit() {
-        let mut redis = StubRedisFacade::new();
-        &redis.get_bool_answers.push(Ok(true));
-        &redis.set_answers.push(Ok(()));
+        let redis = StubRedisFacade::new();
+        &redis.get_bool_answers.borrow_mut().push(Ok(true));
+        &redis.set_answers.borrow_mut().push(Ok(()));
 
-        let mut shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, -1);
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, -1);
         let shorten_result = shortener.shorten(&Some("api key"), "A url").unwrap();
         assert_eq!(10, shorten_result.id.len());
         assert_eq!("http://A url", shorten_result.url);
@@ -283,13 +287,13 @@ mod tests {
 
     #[test]
     fn test_shorten_happy_path_second_call() {
-        let mut redis = StubRedisFacade::new();
-        &redis.get_bool_answers.push(Ok(true));
-        &redis.exists_answers.push(Ok(true));
-        &redis.incr_answers.push(Ok(2));
-        &redis.set_answers.push(Ok(()));
+        let redis = StubRedisFacade::new();
+        &redis.get_bool_answers.borrow_mut().push(Ok(true));
+        &redis.exists_answers.borrow_mut().push(Ok(true));
+        &redis.incr_answers.borrow_mut().push(Ok(2));
+        &redis.set_answers.borrow_mut().push(Ok(()));
 
-        let mut shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
         let shorten_result = shortener.shorten(&Some("api key"), "A url").unwrap();
         assert_eq!(10, shorten_result.id.len());
         assert_eq!("http://A url", shorten_result.url);
@@ -297,14 +301,14 @@ mod tests {
 
     #[test]
     fn test_shorten_happy_path_no_api_key() {
-        let mut redis = StubRedisFacade::new();
-        &redis.get_bool_answers.push(Ok(true));
-        &redis.exists_answers.push(Ok(false));
-        &redis.incr_answers.push(Ok(1));
-        &redis.expire_answers.push(Ok(()));
-        &redis.set_answers.push(Ok(()));
+        let redis = StubRedisFacade::new();
+        &redis.get_bool_answers.borrow_mut().push(Ok(true));
+        &redis.exists_answers.borrow_mut().push(Ok(false));
+        &redis.incr_answers.borrow_mut().push(Ok(1));
+        &redis.expire_answers.borrow_mut().push(Ok(()));
+        &redis.set_answers.borrow_mut().push(Ok(()));
 
-        let mut shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
         let shorten_result = shortener.shorten(&None, "A url").unwrap();
         assert_eq!(10, shorten_result.id.len());
         assert_eq!("http://A url", shorten_result.url);
@@ -313,36 +317,36 @@ mod tests {
     #[test]
     fn test_shorten_unhappy_path_rate_limit_exceeded() {
         let rate_limit = 10;
-        let mut redis = StubRedisFacade::new();
-        &redis.get_bool_answers.push(Ok(true));
-        &redis.exists_answers.push(Ok(true));
-        &redis.incr_answers.push(Ok(rate_limit + 1));
-        &redis.set_answers.push(Ok(()));
+        let redis = StubRedisFacade::new();
+        &redis.get_bool_answers.borrow_mut().push(Ok(true));
+        &redis.exists_answers.borrow_mut().push(Ok(true));
+        &redis.incr_answers.borrow_mut().push(Ok(rate_limit + 1));
+        &redis.set_answers.borrow_mut().push(Ok(()));
 
-        let mut shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, rate_limit);
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, rate_limit);
         let shorten_result_err = shortener.shorten(&Some("api key"), "A url").err().unwrap();
         assert_eq!("Rate limit exceeded", shorten_result_err.message);
     }
 
     #[test]
     fn test_shorten_happy_path_rate_limit_expired() {
-        let mut redis = StubRedisFacade::new();
+        let redis = StubRedisFacade::new();
 
-        &redis.get_bool_answers.push(Ok(true));
-        &redis.get_bool_answers.push(Ok(true));
+        &redis.get_bool_answers.borrow_mut().push(Ok(true));
+        &redis.get_bool_answers.borrow_mut().push(Ok(true));
 
-        &redis.exists_answers.push(Ok(true));
-        &redis.exists_answers.push(Ok(false));
+        &redis.exists_answers.borrow_mut().push(Ok(true));
+        &redis.exists_answers.borrow_mut().push(Ok(false));
 
-        &redis.expire_answers.push(Ok(()));
+        &redis.expire_answers.borrow_mut().push(Ok(()));
 
-        &redis.incr_answers.push(Ok(1));
-        &redis.incr_answers.push(Ok(1));
+        &redis.incr_answers.borrow_mut().push(Ok(1));
+        &redis.incr_answers.borrow_mut().push(Ok(1));
 
-        &redis.set_answers.push(Ok(()));
-        &redis.set_answers.push(Ok(()));
+        &redis.set_answers.borrow_mut().push(Ok(()));
+        &redis.set_answers.borrow_mut().push(Ok(()));
 
-        let mut shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
 
         let shorten_result = shortener.shorten(&Some("api key"), "A url").unwrap();
         assert_eq!(10, shorten_result.id.len());
@@ -355,10 +359,10 @@ mod tests {
 
     #[test]
     fn test_shorten_unhappy_path_invalid_api_key() {
-        let mut redis = StubRedisFacade::new();
-        &redis.get_bool_answers.push(Ok(false));
+        let redis = StubRedisFacade::new();
+        &redis.get_bool_answers.borrow_mut().push(Ok(false));
 
-        let mut shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
         let shorten_result_err = shortener.shorten(&Some("api key"), "A url").err().unwrap();
         assert_eq!("Invalid API key", shorten_result_err.message);
     }
