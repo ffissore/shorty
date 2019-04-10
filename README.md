@@ -143,6 +143,12 @@ Try this `curl` to store a URL
 curl -vv http://localhost:8088/ -H 'Content-Type: application/json' --data '{"url":"https://en.wikipedia.org/wiki/URL_shortening#Techniques"}'
 ```
 
+If you have enabled API keys, add the API key to the payload, like this
+
+```bash
+curl -vv http://localhost:8088/ -H 'Content-Type: application/json' --data '{"api_key": "test", "url":"https://en.wikipedia.org/wiki/URL_shortening#Techniques"}'
+```
+
 It will output something like
 
 ```json
