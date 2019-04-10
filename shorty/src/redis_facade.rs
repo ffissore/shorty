@@ -37,6 +37,7 @@ impl RedisFacade {
     pub fn get_bool(&self, key: &str) -> RedisResult<bool> {
         self.get_string(key)
             .map(|value| FromStr::from_str(&value).unwrap_or(false))
+            .or(Ok(false))
     }
 
     pub fn exists(&self, key: &str) -> RedisResult<bool> {
