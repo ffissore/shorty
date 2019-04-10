@@ -24,11 +24,13 @@ use core::fmt;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-#[cfg(not(test))]
-use crate::redis_facade::RedisFacade;
 use redis::{ErrorKind, RedisError};
+
 #[cfg(test)]
 use tests::StubRedisFacade as RedisFacade;
+
+#[cfg(not(test))]
+use crate::redis_facade::RedisFacade;
 
 #[cfg(not(test))]
 pub mod redis_facade;
@@ -82,6 +84,7 @@ impl Error for ShortenerError {}
 pub struct Shortener {
     id_length: usize,
     id_alphabet: Vec<char>,
+    id_generation_max_attempts: u8,
     redis: RedisFacade,
     rate_limit_period: usize,
     rate_limit: i64,
@@ -111,6 +114,7 @@ impl Shortener {
     pub fn new(
         id_length: usize,
         id_alphabet: Vec<char>,
+        id_generation_max_attempts: u8,
         redis: RedisFacade,
         rate_limit_period: usize,
         rate_limit: i64,
@@ -118,6 +122,7 @@ impl Shortener {
         Shortener {
             id_length,
             id_alphabet,
+            id_generation_max_attempts,
             redis,
             rate_limit_period,
             rate_limit,
@@ -181,6 +186,22 @@ impl Shortener {
         }
     }
 
+    fn generate_id(&self) -> Result<String, ShortenerError> {
+        for _ in 1..=self.id_generation_max_attempts {
+            let id = nanoid::custom(self.id_length, &self.id_alphabet);
+
+            let exists = self.redis.exists(&id).unwrap_or(false);
+
+            if !exists {
+                return Ok(id);
+            }
+        }
+
+        Err(ShortenerError::new(
+            "Failed to generate an ID: too many attempts. Consider using a longer ID",
+        ))
+    }
+
     /// Shortens an URL, returning a `ShortenerResult` holding the provided URL and the generated ID.
     ///
     /// If the optional API key is present, it will validate it and shorten the URL only if
@@ -190,33 +211,34 @@ impl Shortener {
         api_key: &Option<&str>,
         url: &str,
     ) -> Result<ShortenerResult, ShortenerError> {
-        let id = nanoid::custom(self.id_length, &self.id_alphabet);
-
         let verify_result = api_key
             .as_ref()
             .map(|api_key| self.verify_api_key(api_key))
             .unwrap_or(Ok(()));
 
-        verify_result.and_then(|_| {
-            let mut url = url.to_owned();
-            if !url.to_lowercase().starts_with("http") {
-                url = format!("http://{}", url);
-            }
+        verify_result
+            .and_then(|_| self.generate_id())
+            .and_then(|id| {
+                let mut url = url.to_owned();
+                if !url.to_lowercase().starts_with("http") {
+                    url = format!("http://{}", url);
+                }
 
-            self.redis
-                .set(&id, url.as_str())
-                .map(|_| ShortenerResult { id, url })
-                .map_err(|err| ShortenerError::new_with_cause("redis error", Box::new(err)))
-        })
+                self.redis
+                    .set(&id, url.as_str())
+                    .map(|_| ShortenerResult { id, url })
+                    .map_err(|err| ShortenerError::new_with_cause("redis error", Box::new(err)))
+            })
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
+
     use redis::RedisResult;
 
     use super::*;
-    use std::cell::RefCell;
 
     pub struct StubRedisFacade {
         get_string_answers: RefCell<Vec<RedisResult<String>>>,
@@ -240,45 +262,45 @@ mod tests {
         }
 
         pub fn get_string(&self, _key: &str) -> RedisResult<String> {
-            match self.get_string_answers.borrow_mut().pop() {
-                Some(s) => s,
-                None => panic!("unexpected get_string call"),
+            if self.get_string_answers.borrow().len() > 0 {
+                return self.get_string_answers.borrow_mut().remove(0);
             }
+            panic!("unexpected get_string call");
         }
 
         pub fn get_bool(&self, _key: &str) -> RedisResult<bool> {
-            match self.get_bool_answers.borrow_mut().pop() {
-                Some(s) => s,
-                None => panic!("unexpected get call"),
+            if self.get_bool_answers.borrow().len() > 0 {
+                return self.get_bool_answers.borrow_mut().remove(0);
             }
+            panic!("unexpected get_bool call");
         }
 
         pub fn exists(&self, _key: &str) -> RedisResult<bool> {
-            match self.exists_answers.borrow_mut().pop() {
-                Some(s) => s,
-                None => panic!("unexpected exists call"),
+            if self.exists_answers.borrow().len() > 0 {
+                return self.exists_answers.borrow_mut().remove(0);
             }
+            panic!("unexpected exists call");
         }
 
         pub fn set(&self, _key: &str, _value: &str) -> RedisResult<()> {
-            match self.set_answers.borrow_mut().pop() {
-                Some(s) => s,
-                None => panic!("unexpected set call"),
+            if self.set_answers.borrow().len() > 0 {
+                return self.set_answers.borrow_mut().remove(0);
             }
+            panic!("unexpected set call");
         }
 
         pub fn increment(&self, _key: &str) -> RedisResult<i64> {
-            match self.incr_answers.borrow_mut().pop() {
-                Some(s) => s,
-                None => panic!("unexpected incr call"),
+            if self.incr_answers.borrow().len() > 0 {
+                return self.incr_answers.borrow_mut().remove(0);
             }
+            panic!("unexpected increment call");
         }
 
         pub fn expire(&self, _key: &str, _seconds: usize) -> RedisResult<()> {
-            match self.expire_answers.borrow_mut().pop() {
-                Some(s) => s,
-                None => panic!("unexpected expire call"),
+            if self.expire_answers.borrow().len() > 0 {
+                return self.expire_answers.borrow_mut().remove(0);
             }
+            panic!("unexpected expire call");
         }
     }
 
@@ -290,20 +312,26 @@ mod tests {
             .borrow_mut()
             .push(Ok(String::from("test url")));
 
-        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 10, redis, 600, 10);
         assert_eq!(shortener.lookup("id").unwrap(), "test url");
     }
 
     #[test]
     fn test_shorten_happy_path_first_call() {
         let redis = StubRedisFacade::new();
+        // api key verification
         &redis.get_bool_answers.borrow_mut().push(Ok(true));
         &redis.exists_answers.borrow_mut().push(Ok(false));
         &redis.incr_answers.borrow_mut().push(Ok(1));
         &redis.expire_answers.borrow_mut().push(Ok(()));
+
+        // id generation
+        &redis.exists_answers.borrow_mut().push(Ok(false));
+
+        // shortened url storage
         &redis.set_answers.borrow_mut().push(Ok(()));
 
-        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 10, redis, 600, 10);
         let shorten_result = shortener.shorten(&Some("api key"), "A url").unwrap();
         assert_eq!(10, shorten_result.id.len());
         assert_eq!("http://A url", shorten_result.url);
@@ -312,10 +340,16 @@ mod tests {
     #[test]
     fn test_shorten_happy_path_no_rate_limit() {
         let redis = StubRedisFacade::new();
+        // api key verification
         &redis.get_bool_answers.borrow_mut().push(Ok(true));
+
+        // id generation
+        &redis.exists_answers.borrow_mut().push(Ok(false));
+
+        // shortened url storage
         &redis.set_answers.borrow_mut().push(Ok(()));
 
-        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, -1);
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 10, redis, 600, -1);
         let shorten_result = shortener.shorten(&Some("api key"), "A url").unwrap();
         assert_eq!(10, shorten_result.id.len());
         assert_eq!("http://A url", shorten_result.url);
@@ -324,12 +358,18 @@ mod tests {
     #[test]
     fn test_shorten_happy_path_second_call() {
         let redis = StubRedisFacade::new();
+        // api key verification
         &redis.get_bool_answers.borrow_mut().push(Ok(true));
         &redis.exists_answers.borrow_mut().push(Ok(true));
         &redis.incr_answers.borrow_mut().push(Ok(2));
+
+        // id generation
+        &redis.exists_answers.borrow_mut().push(Ok(false));
+
+        // shortened url storage
         &redis.set_answers.borrow_mut().push(Ok(()));
 
-        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 10, redis, 600, 10);
         let shorten_result = shortener.shorten(&Some("api key"), "A url").unwrap();
         assert_eq!(10, shorten_result.id.len());
         assert_eq!("http://A url", shorten_result.url);
@@ -338,13 +378,13 @@ mod tests {
     #[test]
     fn test_shorten_happy_path_no_api_key() {
         let redis = StubRedisFacade::new();
-        &redis.get_bool_answers.borrow_mut().push(Ok(true));
+        // id generation
         &redis.exists_answers.borrow_mut().push(Ok(false));
-        &redis.incr_answers.borrow_mut().push(Ok(1));
-        &redis.expire_answers.borrow_mut().push(Ok(()));
+
+        // shortened url storage
         &redis.set_answers.borrow_mut().push(Ok(()));
 
-        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 10, redis, 600, 10);
         let shorten_result = shortener.shorten(&None, "A url").unwrap();
         assert_eq!(10, shorten_result.id.len());
         assert_eq!("http://A url", shorten_result.url);
@@ -354,12 +394,12 @@ mod tests {
     fn test_shorten_unhappy_path_rate_limit_exceeded() {
         let rate_limit = 10;
         let redis = StubRedisFacade::new();
+        // api key verification
         &redis.get_bool_answers.borrow_mut().push(Ok(true));
         &redis.exists_answers.borrow_mut().push(Ok(true));
         &redis.incr_answers.borrow_mut().push(Ok(rate_limit + 1));
-        &redis.set_answers.borrow_mut().push(Ok(()));
 
-        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, rate_limit);
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 10, redis, 600, rate_limit);
         let shorten_result_err = shortener.shorten(&Some("api key"), "A url").err().unwrap();
         assert_eq!("Rate limit exceeded", shorten_result_err.message);
     }
@@ -368,21 +408,30 @@ mod tests {
     fn test_shorten_happy_path_rate_limit_expired() {
         let redis = StubRedisFacade::new();
 
+        // api key verification
         &redis.get_bool_answers.borrow_mut().push(Ok(true));
-        &redis.get_bool_answers.borrow_mut().push(Ok(true));
-
         &redis.exists_answers.borrow_mut().push(Ok(true));
+        &redis.incr_answers.borrow_mut().push(Ok(1));
+
+        // id generation
         &redis.exists_answers.borrow_mut().push(Ok(false));
 
+        // shortened url storage
+        &redis.set_answers.borrow_mut().push(Ok(()));
+
+        // api key verification
+        &redis.get_bool_answers.borrow_mut().push(Ok(true));
+        &redis.exists_answers.borrow_mut().push(Ok(false));
+        &redis.incr_answers.borrow_mut().push(Ok(1));
         &redis.expire_answers.borrow_mut().push(Ok(()));
 
-        &redis.incr_answers.borrow_mut().push(Ok(1));
-        &redis.incr_answers.borrow_mut().push(Ok(1));
+        // id generation
+        &redis.exists_answers.borrow_mut().push(Ok(false));
 
-        &redis.set_answers.borrow_mut().push(Ok(()));
+        // shortened url storage
         &redis.set_answers.borrow_mut().push(Ok(()));
 
-        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 10, redis, 600, 10);
 
         let shorten_result = shortener.shorten(&Some("api key"), "A url").unwrap();
         assert_eq!(10, shorten_result.id.len());
@@ -396,10 +445,28 @@ mod tests {
     #[test]
     fn test_shorten_unhappy_path_invalid_api_key() {
         let redis = StubRedisFacade::new();
+
+        // api key verification
         &redis.get_bool_answers.borrow_mut().push(Ok(false));
 
-        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], redis, 600, 10);
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 10, redis, 600, 10);
         let shorten_result_err = shortener.shorten(&Some("api key"), "A url").err().unwrap();
         assert_eq!("Invalid API key", shorten_result_err.message);
+    }
+
+    #[test]
+    fn test_shorten_unhappy_path_too_many_attempts_generating_id() {
+        let redis = StubRedisFacade::new();
+
+        // id generation attempts
+        &redis.exists_answers.borrow_mut().push(Ok(true));
+        &redis.exists_answers.borrow_mut().push(Ok(true));
+
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 2, redis, 600, 10);
+        let shorten_result_err = shortener.shorten(&None, "A url").err().unwrap();
+        assert_eq!(
+            "Failed to generate an ID: too many attempts. Consider using a longer ID",
+            shorten_result_err.message
+        );
     }
 }

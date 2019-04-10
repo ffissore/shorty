@@ -22,6 +22,7 @@ pub struct Config {
     pub rate_limit: i64,
     pub id_length: usize,
     pub id_alphabet: Vec<char>,
+    pub id_generation_max_attempts: u8,
     pub api_key_mandatory: bool,
     pub host: String,
     pub port: String,
@@ -54,6 +55,10 @@ impl Config {
         .into_iter()
         .flatten()
         .collect::<Vec<char>>();
+        let id_generation_max_attempts = env::var("SHORTENER_ID_GENERATION_MAX_ATTEMPTS")
+            .unwrap_or_else(|_| String::from("10"))
+            .parse::<u8>()
+            .unwrap();
 
         let host = env::var("SHORTENER_HOST").unwrap_or_else(|_| String::from("127.0.0.1"));
         let port = env::var("SHORTENER_PORT").unwrap_or_else(|_| String::from("8088"));
@@ -70,6 +75,7 @@ impl Config {
             rate_limit,
             id_length,
             id_alphabet,
+            id_generation_max_attempts,
             api_key_mandatory,
             host,
             port,

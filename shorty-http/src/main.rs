@@ -38,6 +38,7 @@ fn main() {
             &config.redis_host,
             &config.redis_port,
             config.id_length,
+            config.id_generation_max_attempts,
             config.rate_limit_period,
             config.rate_limit,
             config.api_key_mandatory,

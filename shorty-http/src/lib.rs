@@ -32,6 +32,7 @@ impl AppState {
         redis_host: &str,
         redis_port: &str,
         id_length: usize,
+        id_generation_max_attempts: u8,
         rate_limit_period: usize,
         rate_limit: i64,
         api_key_mandatory: bool,
@@ -54,6 +55,7 @@ impl AppState {
             shortener: Shortener::new(
                 id_length,
                 alphabet,
+                id_generation_max_attempts,
                 RedisFacade::new(redis),
                 rate_limit_period,
                 rate_limit,

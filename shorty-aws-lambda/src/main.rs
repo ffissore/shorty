@@ -132,6 +132,7 @@ fn handler(e: Request, _c: Context) -> Result<Response<Body>, HandlerError> {
     let mut shortener = Shortener::new(
         config.id_length,
         config.id_alphabet,
+        config.id_generation_max_attempts,
         RedisFacade::new(redis),
         config.rate_limit_period,
         config.rate_limit,
