@@ -1,6 +1,6 @@
 [package]
 name = "shorty"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Federico Fissore <federico@fissore.org>"]
 edition = "2018"
 description = "shorty is a library for assigning short IDs to long URL, and store them on redis"
