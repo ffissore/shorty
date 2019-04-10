@@ -106,6 +106,9 @@ impl Shortener {
     /// `id_alphabet` is the alphabet used in the ID: a decent one is `a-zA-Z0-9` as each entry has
     /// 62 possible values and is ASCII
     ///
+    /// `id_generation_max_attempts` is the number of attempts to generate an unique ID when a
+    /// conflict is detected.
+    ///
     /// `redis` is a `RedisFacade` instance.
     ///
     /// `rate_limit_period` is the amount of seconds during which calls to `shorten` will be counted.

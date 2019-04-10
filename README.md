@@ -167,6 +167,7 @@ Shorty can be configured through environment variables
 * `SHORTENER_RATE_LIMIT`: the amount of new short url a single API key can create in a period, defaults to 10, if set to 0 no limit is applied
 * `SHORTENER_RATE_LIMIT_PERIOD`: the period of the rate limit, if active, defaults to 600 seconds (10 mins)
 * `SHORTENER_ID_LENGTH`: the length of the ID generated for each URL, defaults to 10. The char set is `a-zA-Z0-9` = 62 chars. If you plan to use shorty only internally, you can use a much shorter ID, like 4 chars.
+* `SHORTENER_ID_GENERATION_MAX_ATTEMPTS`: the max number of attempts to generate a unique ID, defaults to 10. Especially important when the ID length is short and many short URLs are created.
 * `SHORTENER_HOST`: the host shorty will listen to
 * `SHORTENER_PORT`: the port shorty will listen to
 
