@@ -25,6 +25,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 use redis::{ErrorKind, RedisError};
+use url::Url;
 
 #[cfg(test)]
 use tests::StubRedisFacade as RedisFacade;
@@ -226,11 +227,17 @@ impl Shortener {
                 if !url.to_lowercase().starts_with("http") {
                     url = format!("http://{}", url);
                 }
-
+                Url::parse(&url)
+                    .and_then(|_| Ok((id, url)))
+                    .map_err(|parse_err| {
+                        ShortenerError::new_with_cause("Unable to parse url", Box::new(parse_err))
+                    })
+            })
+            .and_then(|(id, url)| {
                 self.redis
                     .set(&id, url.as_str())
                     .map(|_| ShortenerResult { id, url })
-                    .map_err(|err| ShortenerError::new_with_cause("redis error", Box::new(err)))
+                    .map_err(|err| ShortenerError::new_with_cause("Redis error", Box::new(err)))
             })
     }
 }
@@ -335,9 +342,9 @@ mod tests {
         &redis.set_answers.borrow_mut().push(Ok(()));
 
         let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 10, redis, 600, 10);
-        let shorten_result = shortener.shorten(&Some("api key"), "A url").unwrap();
+        let shorten_result = shortener.shorten(&Some("api key"), "example.com").unwrap();
         assert_eq!(10, shorten_result.id.len());
-        assert_eq!("http://A url", shorten_result.url);
+        assert_eq!("http://example.com", shorten_result.url);
     }
 
     #[test]
@@ -353,9 +360,9 @@ mod tests {
         &redis.set_answers.borrow_mut().push(Ok(()));
 
         let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 10, redis, 600, -1);
-        let shorten_result = shortener.shorten(&Some("api key"), "A url").unwrap();
+        let shorten_result = shortener.shorten(&Some("api key"), "example.com").unwrap();
         assert_eq!(10, shorten_result.id.len());
-        assert_eq!("http://A url", shorten_result.url);
+        assert_eq!("http://example.com", shorten_result.url);
     }
 
     #[test]
@@ -373,9 +380,9 @@ mod tests {
         &redis.set_answers.borrow_mut().push(Ok(()));
 
         let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 10, redis, 600, 10);
-        let shorten_result = shortener.shorten(&Some("api key"), "A url").unwrap();
+        let shorten_result = shortener.shorten(&Some("api key"), "example.com").unwrap();
         assert_eq!(10, shorten_result.id.len());
-        assert_eq!("http://A url", shorten_result.url);
+        assert_eq!("http://example.com", shorten_result.url);
     }
 
     #[test]
@@ -388,9 +395,9 @@ mod tests {
         &redis.set_answers.borrow_mut().push(Ok(()));
 
         let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 10, redis, 600, 10);
-        let shorten_result = shortener.shorten(&None, "A url").unwrap();
+        let shorten_result = shortener.shorten(&None, "example.com").unwrap();
         assert_eq!(10, shorten_result.id.len());
-        assert_eq!("http://A url", shorten_result.url);
+        assert_eq!("http://example.com", shorten_result.url);
     }
 
     #[test]
@@ -403,8 +410,22 @@ mod tests {
         &redis.incr_answers.borrow_mut().push(Ok(rate_limit + 1));
 
         let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 10, redis, 600, rate_limit);
-        let shorten_result_err = shortener.shorten(&Some("api key"), "A url").err().unwrap();
+        let shorten_result_err = shortener
+            .shorten(&Some("api key"), "example.com")
+            .err()
+            .unwrap();
         assert_eq!("Rate limit exceeded", shorten_result_err.message);
+    }
+
+    #[test]
+    fn test_shorten_unhappy_path_bad_url() {
+        let redis = StubRedisFacade::new();
+        // id generation
+        &redis.exists_answers.borrow_mut().push(Ok(false));
+
+        let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 10, redis, 600, -1);
+        let shorten_result_err = shortener.shorten(&None, "wrong domain.com").err().unwrap();
+        assert_eq!("Unable to parse url", shorten_result_err.message);
     }
 
     #[test]
@@ -436,13 +457,15 @@ mod tests {
 
         let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 10, redis, 600, 10);
 
-        let shorten_result = shortener.shorten(&Some("api key"), "A url").unwrap();
+        let shorten_result = shortener.shorten(&Some("api key"), "example.com").unwrap();
         assert_eq!(10, shorten_result.id.len());
-        assert_eq!("http://A url", shorten_result.url);
+        assert_eq!("http://example.com", shorten_result.url);
 
-        let shorten_result = shortener.shorten(&Some("api key"), "Another url").unwrap();
+        let shorten_result = shortener
+            .shorten(&Some("api key"), "www.wikipedia.org")
+            .unwrap();
         assert_eq!(10, shorten_result.id.len());
-        assert_eq!("http://Another url", shorten_result.url);
+        assert_eq!("http://www.wikipedia.org", shorten_result.url);
     }
 
     #[test]
@@ -453,7 +476,10 @@ mod tests {
         &redis.get_bool_answers.borrow_mut().push(Ok(false));
 
         let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 10, redis, 600, 10);
-        let shorten_result_err = shortener.shorten(&Some("api key"), "A url").err().unwrap();
+        let shorten_result_err = shortener
+            .shorten(&Some("api key"), "example.com")
+            .err()
+            .unwrap();
         assert_eq!("Invalid API key", shorten_result_err.message);
     }
 
@@ -466,7 +492,7 @@ mod tests {
         &redis.exists_answers.borrow_mut().push(Ok(true));
 
         let shortener = Shortener::new(10, vec!['a', 'b', 'c'], 2, redis, 600, 10);
-        let shorten_result_err = shortener.shorten(&None, "A url").err().unwrap();
+        let shorten_result_err = shortener.shorten(&None, "example.com").err().unwrap();
         assert_eq!(
             "Failed to generate an ID: too many attempts. Consider using a longer ID",
             shorten_result_err.message
