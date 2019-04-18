@@ -22,3 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Another `RedisFacade.get_bool` bug
 ### Added
 - Conflicting ID check and multiple attempts to generate a unique one
+
+## [0.5.0] - 2019-04-18
+### Added
+- Parsing URLs before shortening them, therefore checking that they are valid
+- Link loop check: an attempt to shorten a url with the same domain used by shorty to serve shortened urls will result in an error
