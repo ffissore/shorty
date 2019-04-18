@@ -73,6 +73,7 @@ fn shorten(
     shortener: &mut Shortener,
     api_key_mandatory: bool,
     api_key: &Option<String>,
+    host: Option<&str>,
     url: &str,
 ) -> Result<Response<Body>, HandlerError> {
     if api_key.is_none() && api_key_mandatory {
@@ -89,7 +90,7 @@ fn shorten(
 
     let api_key = &api_key.as_ref().map(String::as_str);
 
-    match shortener.shorten(api_key, url) {
+    match shortener.shorten(api_key, host, url) {
         Ok(shorten_result) => Ok(Response::builder()
             .body(Body::Text(serde_json::to_string(&shorten_result).unwrap()))
             .expect("failed to render response")),
@@ -139,6 +140,7 @@ fn handler(e: Request, _c: Context) -> Result<Response<Body>, HandlerError> {
     );
 
     let path = e.uri().path().split('/').last();
+    let host = e.uri().host().unwrap();
 
     match (path, e.method(), e.body()) {
         (Some(key), &Method::GET, Body::Empty) => goto(&mut shortener, key),
@@ -148,6 +150,7 @@ fn handler(e: Request, _c: Context) -> Result<Response<Body>, HandlerError> {
                 &mut shortener,
                 config.api_key_mandatory,
                 &shorten_request.api_key,
+                Some(host),
                 &shorten_request.url,
             )
         }

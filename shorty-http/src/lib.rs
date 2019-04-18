@@ -98,7 +98,17 @@ pub fn shorten((req, payload): (HttpRequest<AppState>, Json<ShortenRequest>)) ->
 
     let api_key = payload.api_key.as_ref().map(String::as_str);
 
-    match app_state.shortener.shorten(&api_key, &payload.url) {
+    let host_domain = &req
+        .connection_info()
+        .host()
+        .split(":")
+        .take(1)
+        .collect::<String>();
+
+    match app_state
+        .shortener
+        .shorten(&api_key, Some(host_domain), &payload.url)
+    {
         Ok(shorten_result) => HttpResponse::Ok().json(shorten_result),
         Err(err) => HttpResponse::InternalServerError().json(ErrorResponse {
             err: err.to_string(),

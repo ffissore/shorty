@@ -61,7 +61,7 @@ npm install
 Then run
 
 ```bash
-serverless deploy
+npx serverless deploy
 ```
 
 This will download a docker image that will be used to compile shorty. It will then create a Redis instance on AWS, all the networking bits required to make the lambda connect to Redis, and finally it will deploy the lambda.
@@ -80,7 +80,7 @@ Please bear in mind that:
 
 When you're done playing with shorty, delete everything with
 ```bash
-serverless remove
+npx serverless remove
 ```   
 
 Now scroll down to [Using shorty](#using-shorty).
