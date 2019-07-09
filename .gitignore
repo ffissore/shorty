@@ -8,3 +8,5 @@ package-lock.json
 # to develop with no permission issues
 target/*
 !target/.gitkeep
+
+.idea

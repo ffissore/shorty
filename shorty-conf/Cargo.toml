@@ -1,6 +1,6 @@
 [package]
 name = "shorty-conf"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Federico Fissore <federico@fissore.org>"]
 edition = "2018"
 description = "shorty-conf is the configuration bit used by crates integrating shorty"
