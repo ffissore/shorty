@@ -30,10 +30,13 @@ For additional information, take a look at the [documentation](https://docs.rs/s
 ### HTTP microservice
 
 Shorty stores its data on redis, so you need to install redis first. How to do that depends on your operating system. If you are on a debian like linux distro, it's just a
+
 ```bash
 apt-get install redis
 ```
+
 If you prefer `docker`, it's
+
 ```bash
 docker run --rm -it -p 6379:6379 redis:alpine
 ```
@@ -42,6 +45,12 @@ Once redis is ready, download the latest shorty [release](https://github.com/ffi
 
 ```bash
 SHORTENER_API_KEY_MANDATORY=false ./shorty-http
+```
+
+Again, if you prefer `docker`, it's
+
+```bash
+docker run --rm -it -e SHORTENER_API_KEY_MANDATORY=false --network host ffissore/shorty
 ```
 
 Shorty will log `Starting server on 127.0.0.1:8088`.
