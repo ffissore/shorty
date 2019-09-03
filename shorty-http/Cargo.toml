@@ -1,6 +1,6 @@
 [package]
 name = "shorty-http"
-version = "0.5.1"
+version = "0.5.2"
 authors = ["Federico Fissore <federico@fissore.org>"]
 edition = "2018"
 description = "shorty-http is a url shortener based on shorty and deployable as a standalone http server"
@@ -17,5 +17,5 @@ redis = "0.10.0"
 env_logger = "0.6"
 serde = "1.0"
 serde_derive = "1.0"
-shorty = { path = "../shorty", version = "0.5.1" }
-shorty-conf = { path = "../shorty-conf", version = "0.5.1" }
+shorty = { path = "../shorty", version = "0.5.2" }
+shorty-conf = { path = "../shorty-conf", version = "0.5.2" }
