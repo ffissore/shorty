@@ -1,6 +1,6 @@
 [package]
 name = "shorty-conf"
-version = "0.5.3"
+version = "0.5.4"
 authors = ["Federico Fissore <federico@fissore.org>"]
 edition = "2018"
 description = "shorty-conf is the configuration bit used by crates integrating shorty"
@@ -8,4 +8,3 @@ license = "Apache-2.0"
 readme = "../README.md"
 repository = "https://github.com/ffissore/shorty"
 keywords = ["url", "shortener", "redis", "server", "serverless"]
-homepage = "https://with.lv"

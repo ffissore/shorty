@@ -1,6 +1,6 @@
 [package]
 name = "shorty-http"
-version = "0.5.3"
+version = "0.5.4"
 authors = ["Federico Fissore <federico@fissore.org>"]
 edition = "2018"
 description = "shorty-http is a url shortener based on shorty and deployable as a standalone http server"
@@ -8,7 +8,6 @@ license = "Apache-2.0"
 readme = "../README.md"
 repository = "https://github.com/ffissore/shorty"
 keywords = ["url", "shortener", "redis", "server", "serverless"]
-homepage = "https://with.lv"
 
 [dependencies]
 actix = "0.7"
@@ -17,5 +16,5 @@ redis = "0.10.0"
 env_logger = "0.6"
 serde = "1.0"
 serde_derive = "1.0"
-shorty = { path = "../shorty", version = "0.5.3" }
-shorty-conf = { path = "../shorty-conf", version = "0.5.3" }
+shorty = { path = "../shorty", version = "0.5.4" }
+shorty-conf = { path = "../shorty-conf", version = "0.5.4" }

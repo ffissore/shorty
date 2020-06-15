@@ -39,7 +39,7 @@ pub mod redis_facade;
 #[derive(Debug)]
 pub struct ShortenerError {
     message: &'static str,
-    cause: Option<Box<Error>>,
+    cause: Option<Box<dyn Error>>,
 }
 
 impl ShortenerError {
@@ -49,7 +49,7 @@ impl ShortenerError {
             cause: None,
         }
     }
-    fn new_with_cause(message: &'static str, error: Box<Error>) -> ShortenerError {
+    fn new_with_cause(message: &'static str, error: Box<dyn Error>) -> ShortenerError {
         ShortenerError {
             message,
             cause: Some(error),
